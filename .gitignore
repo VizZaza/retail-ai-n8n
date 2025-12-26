@@ -1,0 +1,17 @@
+# env
+.env
+
+# node
+node_modules
+dist
+.next
+out
+
+# logs
+*.log
+
+# OS
+.DS_Store
+
+# local
+data/

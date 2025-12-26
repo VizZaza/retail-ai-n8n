@@ -1,0 +1,19 @@
+{
+  # email you can set for Let's Encrypt if you want:
+  # email you@example.com
+}
+
+# Frontend
+app.{$BASE_DOMAIN} {
+  reverse_proxy retail-frontend:3000
+}
+
+# Backend API
+api.{$BASE_DOMAIN} {
+  reverse_proxy retail-backend:3001
+}
+
+# n8n
+n8n.{$BASE_DOMAIN} {
+  reverse_proxy retail-n8n:5678
+}

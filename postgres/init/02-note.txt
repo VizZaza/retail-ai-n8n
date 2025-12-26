@@ -1,0 +1,1 @@
+This folder is mounted into postgres initdb to create the n8n database and user.

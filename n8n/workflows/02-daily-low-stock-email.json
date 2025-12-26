@@ -1,0 +1,115 @@
+{
+  "name": "02 Daily Low Stock Alert Email",
+  "nodes": [
+    {
+      "id": "104",
+      "name": "Cron Daily 08:00",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        320
+      ],
+      "parameters": {
+        "triggerTimes": [
+          {
+            "mode": "everyDay",
+            "hour": 8,
+            "minute": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "105",
+      "name": "Get Low Stock",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        500,
+        320
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.API_URL || 'https://api.' + $env.BASE_DOMAIN}}/reports/low-stock",
+        "responseFormat": "json",
+        "options": {
+          "timeout": 60000
+        },
+        "headerParametersJson": "={{JSON.stringify({'x-internal-api-key': $env.INTERNAL_API_KEY})}}"
+      }
+    },
+    {
+      "id": "106",
+      "name": "Format Email",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        740,
+        320
+      ],
+      "parameters": {
+        "functionCode": "const items = items[0].json;\nlet html = `<h2>Low stock alert</h2><p>Total: ${items.length}</p>`;\nhtml += '<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\"><tr><th>SKU</th><th>Name</th><th>Stock</th><th>ReorderPoint</th></tr>';\nfor (const p of items.slice(0, 30)) {\n  html += `<tr><td>${p.sku}</td><td>${p.name}</td><td>${p.stock}</td><td>${p.reorderPoint}</td></tr>`;\n}\nhtml += '</table>';\nreturn [{json: {subject: `Low stock (${items.length})`, html}}];"
+      }
+    },
+    {
+      "id": "107",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        980,
+        320
+      ],
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM || 'Retail AI <no-reply@'+$env.BASE_DOMAIN+'>'}}",
+        "toEmail": "={{$env.EMAIL_TO}}",
+        "subject": "={{$json.subject}}",
+        "html": "={{$json.html}}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Cron Daily 08:00": {
+      "main": [
+        [
+          {
+            "node": "Get Low Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Low Stock": {
+      "main": [
+        [
+          {
+            "node": "Format Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "meta": {
+    "instanceId": "imported"
+  },
+  "id": null
+}

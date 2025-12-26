@@ -1,0 +1,181 @@
+{
+  "name": "03 Weekly + Webhook Revenue PDF Email",
+  "nodes": [
+    {
+      "id": "108",
+      "name": "Cron Weekly Mon 08:00",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        200,
+        260
+      ],
+      "parameters": {
+        "triggerTimes": [
+          {
+            "mode": "everyWeek",
+            "hour": 8,
+            "minute": 0,
+            "weekday": "1"
+          }
+        ]
+      }
+    },
+    {
+      "id": "109",
+      "name": "Webhook Send Report",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        420
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-revenue-report",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "110",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 1,
+      "position": [
+        420,
+        340
+      ],
+      "parameters": {
+        "mode": "passThrough"
+      }
+    },
+    {
+      "id": "111",
+      "name": "Build Range",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        620,
+        340
+      ],
+      "parameters": {
+        "functionCode": "const dayjs = require('dayjs');\nconst to = dayjs().format('YYYY-MM-DD');\nconst from = dayjs().subtract(7,'day').format('YYYY-MM-DD');\nreturn [{json:{from,to}}];"
+      }
+    },
+    {
+      "id": "112",
+      "name": "Get Revenue PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        820,
+        340
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{($env.API_URL || 'https://api.' + $env.BASE_DOMAIN) + `/reports/revenue.pdf?from=${$json.from}&to=${$json.to}`}}",
+        "responseFormat": "file",
+        "options": {
+          "timeout": 120000
+        },
+        "headerParametersJson": "={{JSON.stringify({'x-internal-api-key': $env.INTERNAL_API_KEY})}}"
+      }
+    },
+    {
+      "id": "113",
+      "name": "Send Revenue PDF",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        340
+      ],
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM || 'Retail AI <no-reply@'+$env.BASE_DOMAIN+'>'}}",
+        "toEmail": "={{$env.EMAIL_TO}}",
+        "subject": "={{`Weekly revenue report (${ $json.from } \u2192 ${ $json.to })`}}",
+        "html": "={{`<p>Attached revenue PDF report for ${$json.from} \u2192 ${$json.to}</p>`}}",
+        "attachments": "={{$binary.data}}"
+      }
+    },
+    {
+      "id": "114",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        420
+      ],
+      "parameters": {
+        "responseBody": "{\"ok\":true}",
+        "responseCode": 200
+      }
+    }
+  ],
+  "connections": {
+    "Cron Weekly Mon 08:00": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Send Report": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Triggers": {
+      "main": [
+        [
+          {
+            "node": "Build Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Range": {
+      "main": [
+        [
+          {
+            "node": "Get Revenue PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Revenue PDF": {
+      "main": [
+        [
+          {
+            "node": "Send Revenue PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "meta": {
+    "instanceId": "imported"
+  },
+  "id": null
+}
